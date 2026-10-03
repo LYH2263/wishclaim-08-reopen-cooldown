@@ -7,6 +7,7 @@
         <h3>{{ w.title || '（无标题）' }}</h3>
         <p>{{ w.note }}</p>
         <span class="tag">{{ w.status }} · {{ w.data_quality }}</span>
+        <p v-if="w.cooldown_active" class="tag">冷却至 {{ fmt(w.cooldown_until) }}</p>
       </article>
     </div>
   </div>
@@ -15,5 +16,6 @@
 import { ref, onMounted } from 'vue'
 import { api } from '../api'
 const rows = ref([])
+const fmt = (s) => new Date(s).toLocaleString()
 onMounted(async () => { rows.value = await api('/wishes') })
 </script>
