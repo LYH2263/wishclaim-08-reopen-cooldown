@@ -3,6 +3,9 @@
     <h1 class="serif">{{ w.title }}</h1>
     <p>{{ w.note }}</p>
     <p class="tag">状态 {{ w.status }} · 认领人 {{ w.claimer || '—' }}</p>
+    <p v-if="w.in_cooldown" class="tag cooldown">
+      冷却中 · 截止 {{ fmt(w.cooldown_until) }} · 剩余 {{ w.cooldown_remaining_seconds }} 秒
+    </p>
     <p v-if="err" class="err">{{ err }}</p>
     <input v-model="claimer" placeholder="你的名字" />
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -19,15 +22,16 @@ const props = defineProps({ id: String })
 const w = ref({})
 const claimer = ref('访客')
 const err = ref('')
+const fmt = (s) => (s ? new Date(s).toLocaleString() : '')
+const FRIENDLY = { cooldown: '冷却中，暂不可认领', locked: '已被他人锁定', already_fulfilled: '已核销完成' }
 async function load() { w.value = await api('/wishes/' + props.id) }
-async function claim() {
-  err.value=''; try { await api('/wishes/'+props.id+'/claim',{method:'POST',body:JSON.stringify({claimer:claimer.value})}); await load() } catch(e){ err.value=e.message }
+async function act(path, body) {
+  err.value = ''
+  try { await api('/wishes/' + props.id + path, { method: 'POST', body: JSON.stringify(body) }); await load() }
+  catch (e) { err.value = FRIENDLY[e.message] || e.message }
 }
-async function release() {
-  err.value=''; try { await api('/wishes/'+props.id+'/release',{method:'POST',body:'{}'}); await load() } catch(e){ err.value=e.message }
-}
-async function fulfill() {
-  err.value=''; try { await api('/wishes/'+props.id+'/fulfill',{method:'POST',body:'{}'}); await load() } catch(e){ err.value=e.message }
-}
+const claim = () => act('/claim', { claimer: claimer.value })
+const release = () => act('/release', {})
+const fulfill = () => act('/fulfill', {})
 onMounted(load)
 </script>
